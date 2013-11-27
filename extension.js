@@ -13,11 +13,14 @@ function _hideHello() {
 
 function _onRSSLoaded(body) {
   var xmlDoc = new XML(body);
-  print("done");
+  var firstTitle = xmlDoc.channel.item[0].title.toString();
 
   if (!text) {
-      text = new St.Label({ style_class: 'helloworld-label', text: xmlDoc.channel.item[0].title.toString() });
+      text = new St.Label({ style_class: 'helloworld-label', text: firstTitle });
       Main.uiGroup.add_actor(text);
+  }
+  else {
+    text.text = firstTitle
   }
 
   text.opacity = 255;
@@ -45,7 +48,6 @@ function _showHello() {
                                     return;
                                   }
                                   var weatherXML = request.response_body.data;
-                                  print("asdasdsa");
                                   _onRSSLoaded(weatherXML.replace(/.*<\?xml[^>]*>/, ''));
                                 });
 }
