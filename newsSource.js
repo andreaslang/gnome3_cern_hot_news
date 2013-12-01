@@ -15,7 +15,15 @@ function _createNewsObjects(newsXML) {
   for (var itemIndex = 0; itemIndex < items.length(); itemIndex++) {
     var item = items[itemIndex];
     news.push({
-      "title": item.title.toString()
+      "title": item.title.toString(),
+      "author": item.author.toString(),
+      "description": item.description.toString()
+        .replace(/<br[^>]*>/g, '\n')
+        .replace(/<\/p[^>]*>/g, '\n')
+        .replace(/<[^>]*>/g, ''),
+      "link": item.link.toString(),
+      "pubDate": item.pubDate.toString(),
+      "guid": item.guid.toString()
     })
   }
   return news;

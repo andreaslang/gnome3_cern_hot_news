@@ -18,22 +18,13 @@ function _onNewsLoaded(news) {
   var testFile = Gio.file_new_for_path('.cern_hot_news');
   var out = testFile.replace(null, Gio.FileCreateFlags.NONE, null, null);
   let testFileS = new Gio.DataOutputStream({ base_stream: out});
-  testFileS.put_string(JSON.stringify(news), null);
+  testFileS.put_string(JSON.stringify(news, null, 2), null);
   testFileS.close(null);
-  for (property in testFile)
-  {
-    print(property);
-  }
-  print('------------------')
-  for (property in Gio.File)
-  {
-    print(property);
-  }
   print(Extension.path);
 
   var displayText;
   if (news.length > 0)
-    displayText = news[0].title;
+    displayText = news[0].description;
   else
     displayText = "No News Found";
 
