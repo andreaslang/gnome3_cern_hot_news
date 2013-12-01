@@ -1,8 +1,9 @@
-
 const St = imports.gi.St;
 const Main = imports.ui.main;
 const Tweener = imports.ui.tweener;
-const Soup = imports.gi.Soup;
+
+const Extension = imports.misc.extensionUtils.getCurrentExtension();
+const NewsSource = Extension.imports.newsSource;
 
 let text, button;
 
@@ -11,16 +12,19 @@ function _hideHello() {
     text = null;
 }
 
-function _onRSSLoaded(body) {
-  var xmlDoc = new XML(body);
-  var firstTitle = xmlDoc.channel.item[0].title.toString();
+function _onNewsLoaded(news) {
+  var displayText;
+  if (news.length > 0)
+    displayText = news[0].title;
+  else
+    displayText = "No News Found";
 
   if (!text) {
-      text = new St.Label({ style_class: 'helloworld-label', text: firstTitle });
+      text = new St.Label({ style_class: 'helloworld-label', text: displayText });
       Main.uiGroup.add_actor(text);
   }
   else {
-    text.text = firstTitle
+    text.text = displayText
   }
 
   text.opacity = 255;
@@ -38,18 +42,7 @@ function _onRSSLoaded(body) {
 }
 
 function _showHello() {
-    
-    const _httpSession = new Soup.SessionAsync();
-    Soup.Session.prototype.add_feature.call(_httpSession, new Soup.ProxyResolverDefault());
-    var request = Soup.Message.new('GET', 'http://cernalerts.web.cern.ch/cernalerts/?feed=cern%20hot%20news');
-    _httpSession.queue_message(request, function (_httpSession, message) {
-                                  if (message.status_code !== 200) {
-                                    print("Error" + message.status_code);
-                                    return;
-                                  }
-                                  var weatherXML = request.response_body.data;
-                                  _onRSSLoaded(weatherXML.replace(/.*<\?xml[^>]*>/, ''));
-                                });
+  NewsSource.loadNews(_onNewsLoaded)
 }
 
 
