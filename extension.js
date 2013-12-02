@@ -57,17 +57,18 @@ function _showHello() {
 
 
 function init() {
-    button = new St.Bin({ style_class: 'panel-button',
-                          reactive: true,
-                          can_focus: true,
-                          x_fill: true,
-                          y_fill: false,
-                          track_hover: true });
-    let icon = new St.Icon({ icon_name: 'system-run-symbolic',
-                             style_class: 'system-status-icon' });
+  let theme = imports.gi.Gtk.IconTheme.get_default();
+  theme.append_search_path(Extension.path + "/icons");
+  button = new St.Bin({ style_class: 'panel-button',
+                        reactive: true,
+                        can_focus: true,
+                        x_fill: true,
+                        y_fill: false,
+                        track_hover: true });
+  let icon = new St.Icon({ icon_name: 'c-white', style_class: 'system-status-icon' });
 
-    button.set_child(icon);
-    button.connect('button-press-event', _showHello);
+  button.set_child(icon);
+  button.connect('button-press-event', _showHello);
 }
 
 function enable() {
