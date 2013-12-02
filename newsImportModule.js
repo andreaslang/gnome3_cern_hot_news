@@ -8,10 +8,10 @@ const NewsXMLConverter = new Lang.Class({
     this._xml = xml;
   },
 
-  convertToNewsArray: function() {
+  convertXMLToNewsItems: function() {
     var news = [];
     var newsItems = this._xml.channel.item;
-    for (var itemIndex = 0; itemIndex < newsItems.length(); itemIndex++) {
+    for (let itemIndex = 0; itemIndex < newsItems.length(); itemIndex++) {
       var newsItem = newsItems[itemIndex];
       news.push(this._createNewsItem(newsItem))
     }
