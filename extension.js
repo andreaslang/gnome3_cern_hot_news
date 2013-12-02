@@ -1,6 +1,6 @@
 const St = imports.gi.St;
 const Gio = imports.gi.Gio;
-const Gtk = imports.gi.Gtk
+const Gtk = imports.gi.Gtk;
 const Main = imports.ui.main;
 const MessageTray = imports.ui.messageTray;
 const PopupMenu = imports.ui.popupMenu;
