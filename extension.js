@@ -1,17 +1,16 @@
 const St = imports.gi.St;
 const Gio = imports.gi.Gio;
 const Main = imports.ui.main;
-const Tweener = imports.ui.tweener;
+const MessageTray = imports.ui.messageTray;
+const PopupMenu = imports.ui.popupMenu;
+const Lang = imports.lang;
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
-const NewsSource = Extension.imports.newsSource;
+const NewsImport = Extension.imports.newsImportModule;
+const NewsLoader = NewsImport.NewsLoader;
+const NewsXMLConverter = NewsImport.NewsXMLConverter;
 
-let text, button;
-
-function _hideHello() {
-    Main.uiGroup.remove_actor(text);
-    text = null;
-}
+let button, newsNotificationSource;
 
 function _onNewsLoaded(news) {
 
@@ -20,38 +19,27 @@ function _onNewsLoaded(news) {
   let testFileS = new Gio.DataOutputStream({ base_stream: out});
   testFileS.put_string(JSON.stringify(news, null, 2), null);
   testFileS.close(null);
-  print(Extension.path);
 
-  var displayText;
   if (news.length > 0)
-    displayText = news[0].description;
-  else
-    displayText = "No News Found";
-
-  if (!text) {
-      text = new St.Label({ style_class: 'helloworld-label', text: displayText });
-      Main.uiGroup.add_actor(text);
+  {
+    var firstNewsItem = news[0];
+    var notification = new MessageTray.Notification(
+        newsNotificationSource,
+        firstNewsItem.title,
+        firstNewsItem.description + '\n' + firstNewsItem.link,
+        {gicon: Gio.icon_new_for_string('c-white')}
+    );
+    newsNotificationSource.notify(notification);
   }
-  else {
-    text.text = displayText
-  }
-
-  text.opacity = 255;
-
-  let monitor = Main.layoutManager.primaryMonitor;
-
-  text.set_position(Math.floor(monitor.width / 2 - text.width / 2),
-                    Math.floor(monitor.height / 2 - text.height / 2));
-
-  Tweener.addTween(text,
-                   { opacity: 0,
-                     time: 10,
-                     transition: 'easeOutQuad',
-                     onComplete: _hideHello });    
 }
 
-function _showHello() {
-  NewsSource.loadNews(_onNewsLoaded)
+function _loadNews() {
+  var newsLoader = new NewsLoader();
+  newsLoader.onSuccess = function(newsXML) {
+    var news = new NewsXMLConverter(newsXML).convertToNewsArray();
+    _onNewsLoaded(news)
+  };
+  newsLoader.load();
 }
 
 
@@ -68,7 +56,9 @@ function init() {
   let icon = new St.Icon({ icon_name: 'c-white', style_class: 'system-status-icon' });
 
   button.set_child(icon);
-  button.connect('button-press-event', _showHello);
+  button.connect('button-press-event', _loadNews);
+  newsNotificationSource = new NewsNotificationSource();
+  Main.messageTray.add(newsNotificationSource);
 }
 
 function enable() {
@@ -78,3 +68,31 @@ function enable() {
 function disable() {
     Main.panel._rightBox.remove_child(button);
 }
+
+
+
+const NewsNotificationSource = new Lang.Class({
+  Name: 'NewsNotificationSource',
+  Extends: MessageTray.Source,
+
+  _init: function() {
+    this.parent('CERN Hot News', 'cern-white');
+    this.setTransient(true);
+  },
+
+  buildRightClickMenu: function() {
+    let item;
+    let rightClickMenu = new St.BoxLayout({
+      name: 'summary-right-click-menu',
+      vertical: true
+    });
+
+    item = new PopupMenu.PopupMenuItem(_("Remove"));
+    item.connect('activate', Lang.bind(this, function() {
+      this.destroy();
+      this.emit('done-displaying-content', false);
+    }));
+    rightClickMenu.add(item.actor);
+    return rightClickMenu;
+  }
+});
