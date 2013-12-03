@@ -4,8 +4,8 @@ const Lang = imports.lang;
 /**
  * Builds a diff between an old collection of news an a new one assuming both are in chronological order.
  */
-const NewsDiff = new Lang.Class({
-  Name: 'NewsDiff',
+const RSSItemDiff = new Lang.Class({
+  Name: 'RSSItemDiff',
 
   _init: function(oldNews, newNews) {
     this._oldNews = oldNews;
@@ -43,8 +43,8 @@ const NewsDiff = new Lang.Class({
 
 });
 
-const NewsStore = new Lang.Class({
-  Name: 'NewsStore',
+const RSSItemStore = new Lang.Class({
+  Name: 'RSSItemStore',
 
   _init: function(storageLocation) {
     this._directory = Gio.file_new_for_path(storageLocation);
@@ -72,7 +72,7 @@ const NewsStore = new Lang.Class({
   compareAndGetNewsNotInStore: function(news)
   {
     var storedNews = this.loadNews();
-    var newsDiff = new NewsDiff(storedNews, news);
+    var newsDiff = new RSSItemDiff(storedNews, news);
     return newsDiff.getDiff();
   },
 
