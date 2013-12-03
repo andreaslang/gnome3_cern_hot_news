@@ -44,13 +44,18 @@ const NewsXMLConverter = new Lang.Class({
 const NewsLoader = new Lang.Class({
   Name: 'NewsLoader',
 
-  _init: function() {
+  _init: function(source) {
+    this._source = source;
+  },
+
+  _initializeHTTPSession: function () {
     this._httpSession = new Soup.SessionAsync();
     Soup.Session.prototype.add_feature.call(this._httpSession, new Soup.ProxyResolverDefault());
-    this._request = Soup.Message.new('GET', 'http://cernalerts.web.cern.ch/cernalerts/?feed=cern%20hot%20news');
+    this._request = Soup.Message.new('GET', this._source);
   },
 
   load: function() {
+    this._initializeHTTPSession();
     this._httpSession.queue_message(
         this._request,
         Lang.bind(this, this._onLoad)
@@ -66,7 +71,9 @@ const NewsLoader = new Lang.Class({
   },
 
   onSuccess: function(xml) {},
-  onFailure: function(message) { print(message); },
+  onFailure: function(message) {
+    global.log('[CERN Hot News] Request failed with status code: ' + message.status_code);
+  },
 
   _getBodyXML: function() {
     var weatherXML = this._request.response_body.data;

@@ -1,9 +1,10 @@
-const St = imports.gi.St;
 const Gio = imports.gi.Gio;
 const Gtk = imports.gi.Gtk;
 const Main = imports.ui.main;
+const Mainloop = imports.mainloop;
 const MessageTray = imports.ui.messageTray;
 const PopupMenu = imports.ui.popupMenu;
+const St = imports.gi.St;
 const Lang = imports.lang;
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
@@ -15,69 +16,77 @@ const NewsImportModule = Extension.imports.newsImportModule;
 const NewsLoader = NewsImportModule.NewsLoader;
 const NewsXMLConverter = NewsImportModule.NewsXMLConverter;
 
-const STORE_LOCATION = '.cern_hot_news';
-const MAX_NEW_ITEMS = 5;
-
-let button, newsStore, newsNotificationSource;
-
 function init() {
-  let theme = Gtk.IconTheme.get_default();
-  theme.append_search_path(Extension.path + "/icons");
-  button = new St.Bin({
-    style_class: 'panel-button',
-    reactive: true,
-    can_focus: true,
-    x_fill: true,
-    y_fill: false,
-    track_hover: true
-  });
-  let icon = new St.Icon({ icon_name: 'c-white', style_class: 'system-status-icon' });
-  button.set_child(icon);
-  button.connect('button-press-event', _loadNews);
-  newsStore = new NewsStore(STORE_LOCATION);
+  return new CernHotNewsExtension();
 }
 
-function _loadNews() {
-  var newsLoader = new NewsLoader();
-  newsLoader.onSuccess = function(newsXML) {
-    var news = new NewsXMLConverter(newsXML).convertXMLToNewsItems();
-    _onNewsLoaded(news)
-  };
-  newsLoader.load();
-}
+const CernHotNewsExtension = new Lang.Class({
+  Name: 'CernHotNewsExtension',
 
-function _onNewsLoaded(loadedNews) {
-  if (loadedNews.length > 0)
-  {
-    var newsNotInStore = newsStore.compareAndGetNewsNotInStore(loadedNews);
-    newsStore.storeNews(loadedNews);
-    if (newsNotInStore.length > 0)
+  FEED_URL: 'http://cernalerts.web.cern.ch/cernalerts/?feed=cern%20hot%20news',
+  STORE_LOCATION: '.cern_hot_news',
+  REFRESH_TIME: 900,
+  MAX_NEW_ITEMS: 3,
+
+  _init: function() {
+    let theme = Gtk.IconTheme.get_default();
+    theme.append_search_path(Extension.path + '/icons');
+    this._newsStore = new NewsStore(this.STORE_LOCATION);
+    this._newsLoader = new NewsLoader(this.FEED_URL);
+    this._newsLoader.onSuccess = Lang.bind(this, function(newsXML) {
+      var news = new NewsXMLConverter(newsXML).convertXMLToNewsItems();
+      this._onNewsLoaded(news)
+    });
+  },
+
+  enable: function() {
+    this._loadNews();
+  },
+
+  disable: function() {
+    if (this._newsNotificationSource)
+      this._newsNotificationSource._remove();
+    Mainloop.source_remove(this._sourceId);
+  },
+
+  _loadNews: function() {
+    this._newsLoader.load();
+    this._scheduleNextLoad();
+  },
+
+  _scheduleNextLoad: function () {
+    if (this._sourceId != null)
+      Mainloop.source_remove(this._sourceId);
+    this._sourceId = Mainloop.timeout_add_seconds(this.REFRESH_TIME, Lang.bind(this, this._loadNews));
+  },
+
+  _onNewsLoaded: function(loadedNews) {
+    if (loadedNews.length > 0)
     {
-      _createAndAttachNewsNotificationSourceIfRequired();
-      for (let index = 0; index < newsNotInStore.length && index < MAX_NEW_ITEMS; index++) {
-        newsNotificationSource.sendNewsNotification(newsNotInStore[index]);
+      var newsNotInStore = this._newsStore.compareAndGetNewsNotInStore(loadedNews);
+      this._newsStore.storeNews(loadedNews);
+      if (newsNotInStore.length > 0)
+      {
+        this._createAndAttachNewsNotificationSourceIfRequired();
+        for (let index = 0; index < newsNotInStore.length && index < this.MAX_NEW_ITEMS; index++) {
+          this._newsNotificationSource.sendNewsNotification(newsNotInStore[index]);
+        }
       }
     }
+  },
+
+  _createAndAttachNewsNotificationSourceIfRequired: function() {
+    if (!this._newsNotificationSource)
+    {
+      this._newsNotificationSource = new NewsNotificationSource();
+      this._newsNotificationSource.onRemove = Lang.bind(this, function() {
+        this._newsNotificationSource = null
+      });
+      Main.messageTray.add(this._newsNotificationSource);
+    }
   }
-}
 
-function _createAndAttachNewsNotificationSourceIfRequired() {
-  if (!newsNotificationSource)
-  {
-    newsNotificationSource = new NewsNotificationSource();
-    Main.messageTray.add(newsNotificationSource);
-  }
-}
-
-function enable() {
-  Main.panel._rightBox.insert_child_at_index(button, 0);
-}
-
-function disable() {
-  Main.panel._rightBox.remove_child(button);
-  if (newsNotificationSource)
-    newsNotificationSource.remove();
-}
+});
 
 const NewsNotificationSource = new Lang.Class({
   Name: 'NewsNotificationSource',
@@ -86,6 +95,7 @@ const NewsNotificationSource = new Lang.Class({
   _init: function() {
     this.parent('CERN Hot News', 'cern-white');
     this.setTransient(true);
+    this.onRemove = function() {};
   },
 
   sendNewsNotification: function(newsItem) {
@@ -106,14 +116,14 @@ const NewsNotificationSource = new Lang.Class({
     });
 
     item = new PopupMenu.PopupMenuItem(_("Remove"));
-    item.connect('activate', Lang.bind(this, this.remove));
+    item.connect('activate', Lang.bind(this, this._remove));
     rightClickMenu.add(item.actor);
     return rightClickMenu;
   },
 
-  remove: function() {
+  _remove: function() {
     this.destroy();
     this.emit('done-displaying-content', false);
-    newsNotificationSource = null;
+    this.onRemove();
   }
 });
