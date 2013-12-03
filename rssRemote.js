@@ -1,8 +1,11 @@
 const Soup = imports.gi.Soup;
 const Lang = imports.lang;
 
-const RSSConverter = new Lang.Class({
-  Name: 'RSSConverter',
+const HTTP_SESSION = new Soup.SessionAsync();
+Soup.Session.prototype.add_feature.call(HTTP_SESSION, new Soup.ProxyResolverDefault());
+
+const RssConverter = new Lang.Class({
+  Name: 'RssConverter',
 
   _init: function(xml) {
     this._xml = xml;
@@ -51,22 +54,16 @@ const RSSConverter = new Lang.Class({
   }
 });
 
-const RSSLoader = new Lang.Class({
-  Name: 'RSSLoader',
+const RssLoader = new Lang.Class({
+  Name: 'RssLoader',
 
   _init: function(source) {
     this._source = source;
-  },
-
-  _initializeHTTPSession: function () {
-    this._httpSession = new Soup.SessionAsync();
-    Soup.Session.prototype.add_feature.call(this._httpSession, new Soup.ProxyResolverDefault());
     this._request = Soup.Message.new('GET', this._source);
   },
 
   load: function() {
-    this._initializeHTTPSession();
-    this._httpSession.queue_message(
+    HTTP_SESSION.queue_message(
         this._request,
         Lang.bind(this, this._onLoad)
     );

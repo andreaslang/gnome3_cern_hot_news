@@ -9,12 +9,12 @@ const Lang = imports.lang;
 
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 
-const NewsStorageModule = Extension.imports.newsStorageModule;
-const NewsStore = NewsStorageModule.NewsStore;
+const RssLocal = Extension.imports.rssLocal;
+const RssItemStore = RssLocal.RssItemStore;
 
-const NewsImportModule = Extension.imports.newsImportModule;
-const NewsLoader = NewsImportModule.NewsLoader;
-const NewsXMLConverter = NewsImportModule.NewsXMLConverter;
+const RssRemote = Extension.imports.rssRemote;
+const RssLoader = RssRemote.RssLoader;
+const RssConverter = RssRemote.RssConverter;
 
 function init() {
   return new CernHotNewsExtension();
@@ -31,10 +31,10 @@ const CernHotNewsExtension = new Lang.Class({
   _init: function() {
     let theme = Gtk.IconTheme.get_default();
     theme.append_search_path(Extension.path + '/icons');
-    this._newsStore = new NewsStore(this.STORE_LOCATION);
-    this._newsLoader = new NewsLoader(this.FEED_URL);
+    this._newsStore = new RssItemStore(this.STORE_LOCATION);
+    this._newsLoader = new RssLoader(this.FEED_URL);
     this._newsLoader.onSuccess = Lang.bind(this, function(newsXML) {
-      var news = new NewsXMLConverter(newsXML).convertXMLToNewsItems();
+      var news = new RssConverter(newsXML).extractRSSItems();
       this._onNewsLoaded(news)
     });
   },
@@ -46,7 +46,7 @@ const CernHotNewsExtension = new Lang.Class({
   disable: function() {
     if (this._newsNotificationSource)
       this._newsNotificationSource._remove();
-    Mainloop.source_remove(this._sourceId);
+    Mainloop.source_remove(this._timeoutSourceId);
   },
 
   _loadNews: function() {
@@ -55,9 +55,9 @@ const CernHotNewsExtension = new Lang.Class({
   },
 
   _scheduleNextLoad: function () {
-    if (this._sourceId != null)
-      Mainloop.source_remove(this._sourceId);
-    this._sourceId = Mainloop.timeout_add_seconds(this.REFRESH_TIME, Lang.bind(this, this._loadNews));
+    if (this._timeoutSourceId != null)
+      Mainloop.source_remove(this._timeoutSourceId);
+    this._timeoutSourceId = Mainloop.timeout_add_seconds(this.REFRESH_TIME, Lang.bind(this, this._loadNews));
   },
 
   _onNewsLoaded: function(loadedNews) {
