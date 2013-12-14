@@ -11,6 +11,6 @@ useful for me at the same time.
 Beeing aware of the things mentioned above you can use it however you want.
 
 To install the extension just use:
-git clone https://github.com/andreaslang/gnome3_cern_hot_news.git ~~/.local/share/gnome-shell/extensions/CERN_Hot_News@andreas.al.lang.gmail.com
+git clone https://github.com/andreaslang/gnome3_cern_hot_news.git ~/.local/share/gnome-shell/extensions/CERN_Hot_News@andreas.al.lang.gmail.com
 
 Then press Alt+F2 and enter 'r' to reload your shell. 
