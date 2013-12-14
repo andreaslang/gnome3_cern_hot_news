@@ -1,6 +1,6 @@
 {
   "shell-version": ["3.8.4"], 
-  "uuid": "CERN_Hot_News@andreas.al.lang@gmail.com", 
+  "uuid": "CERN_Hot_News@andreas.al.lang.gmail.com", 
   "name": "CERN Hot News", 
   "description": "Displays the CERN Hot News Feed"
 }
