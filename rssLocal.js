@@ -86,7 +86,7 @@ const RssItemStore = new Lang.Class({
   storeNews: function(news) {
     this._ensureStorageDirectoryExists();
     var jsonNews = JSON.stringify({news: news}, null, 2);
-    var outputStream = this._file.replace(null, Gio.FileCreateFlags.NONE, null, null);
+    var outputStream = this._file.replace(null, false, Gio.FileCreateFlags.NONE, null, null);
     this._storeString(outputStream, jsonNews);
   },
 
